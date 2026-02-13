@@ -1,0 +1,43 @@
+{
+  "name": "dkey-app",
+  "version": "0.1.0",
+  "description": "browser-based app for the DKEY protocol",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "collaborators": [
+    "noad"
+  ],
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.1",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.0",
+    "bignumber": "^1.1.0",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "dkey-lib": "^1.1.0",
+    "ethereum-public-key-to-address": "^0.0.5",
+    "file-loader": "^6.2.0",
+    "import-loader": "^1.0.1",
+    "ipfs-http-client": "^60.0.1",
+    "multiformats": "^13.1.0",
+    "nvm": "^0.0.4",
+    "snarkjs": "^0.7.0",
+    "ts-loader": "^9.4.4",
+    "web3": "^1.8.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.22.9",
+    "copy-webpack-plugin": "^5.0.0",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5"
+  },
+  "resolutions": {
+    "glob-parent": "5.1.2"
+  }
+}

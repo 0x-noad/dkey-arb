@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+  
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>~$DKEY</title>
+    <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+    <link rel="icon" type="image/x-icon" href="key.png" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="landing">
+      <h1 class="landing-title">Profile setup</h1>
+      <p class="landing-copy">Load or create your dkey profile.</p>
+      <div class="landing-options">
+        <button type="button" class="landing-btn" id="landing-new">Create new profile</button>
+        <div class="landing-option">
+          <button type="button" class="landing-btn" id="landing-paste-toggle">Paste profile JSON</button>
+          <div id="landing-paste-area" class="landing-paste-area hidden">
+            <textarea id="landing-paste-input" class="landing-textarea" placeholder="Paste profile JSON here..."></textarea>
+            <button type="button" class="landing-btn landing-btn-submit" id="landing-paste-submit">Load</button>
+            <p id="landing-paste-error" class="landing-error hidden"></p>
+          </div>
+        </div>
+        <div class="landing-option">
+          <label class="landing-btn landing-file-label" for="landing-file-input">Load .enc file</label>
+          <input type="file" id="landing-file-input" class="landing-file-input" accept=".enc,application/octet-stream" />
+          <div id="landing-file-area" class="landing-file-area hidden">
+            <input type="password" id="landing-file-password" class="landing-input" placeholder="Password" />
+            <button type="button" class="landing-btn landing-btn-submit" id="landing-file-decrypt">Decrypt</button>
+            <p id="landing-file-error" class="landing-error hidden"></p>
+          </div>
+        </div>
+      </div>
+      <p id="landing-message" class="landing-error hidden"></p>
+    </div>
+    <div id="terminal-wrap" class="hidden">
+    <div id="terminal">
+      <a id="before"></a>
+    </div>
+    <div id="command" onclick="$('texter').focus();">
+      <textarea
+        type="text"
+        id="texter"
+        onkeyup="typeIt(this, event)"
+        onkeydown="typeIt(this, event); 
+                   moveIt(this.value.length, event)"
+        onkeypress="typeIt(this, event);"
+        autofocus
+      ></textarea>
+      <div id="liner">
+        <span id="typer"></span><b class="cursor" id="cursor">█</b>
+      </div>
+    </div>
+    </div>
+    <div class="fullscreen-dropzone" id="dropzone"></div>
+    <script>
+        // style/functions stolen from https://fkcodes.com/
+        function $(elid) {
+            return document.getElementById(elid);
+        }
+        
+        var cursor;
+        window.onload = init;
+
+        function init() {
+        cursor = $("cursor");
+        cursor.style.left = "0px";
+        }
+
+        function nl2br(txt) {
+        return txt.replace(/\n/g, '');
+        }
+
+        function typeIt(from, e) {
+        e = e || window.event;
+        var w = $("typer");
+        var tw = from.value;
+        w.innerHTML = nl2br(tw);
+        }
+
+        function moveIt(count, e) {
+        e = e || window.event;
+        var keycode = e.keyCode || e.which;
+        if (keycode == 37 && parseInt(cursor.style.left) >= (0 - ((count - 1) * 10))) {
+            cursor.style.left = parseInt(cursor.style.left) - 10 + "px";
+        } else if (keycode == 39 && (parseInt(cursor.style.left) + 10) <= 0) {
+            cursor.style.left = parseInt(cursor.style.left) + 10 + "px";
+        }
+        }
+
+        function alert(txt) {
+        console.log(txt);
+        }
+
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        function addLine(text, style, time) {
+        var t = "";
+        for (let i = 0; i < text.length; i++) {
+            if (text.charAt(i) == " " && text.charAt(i + 1) == " ") {
+            t += "&nbsp;&nbsp;";
+            i++;
+            } else {
+            t += text.charAt(i);
+            }
+        }
+        setTimeout(function() {
+            var next = document.createElement("p");
+            next.innerHTML = t;
+            next.className = style;
+
+            before.parentNode.insertBefore(next, before);
+
+            window.scrollTo(0, document.body.offsetHeight);
+        }, time);
+        }
+
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        var before = document.getElementById("before");
+        var liner = document.getElementById("liner");
+        var command = document.getElementById("typer");
+        var textarea = document.getElementById("texter");
+        var terminal = document.getElementById("terminal");
+
+        var commands = [];
+        var historyIndex = 0;
+
+        window.addEventListener("keyup", enterKey);
+
+        textarea.value = "";
+        command.innerHTML = textarea.value;
+
+        window.terminalReady = function() {
+            addLine("Welcome to dkey.", "color2", 80);
+            if (textarea && typeof textarea.focus === "function") textarea.focus();
+        };
+
+        function onCommand(cmd) {
+            if (typeof cmd !== "string") return;
+            var c = cmd.toLowerCase().trim();
+            if (c === "clear") {
+                terminal.innerHTML = "<a id=\"before\"></a>";
+                before = document.getElementById("before");
+                return;
+            }
+            addLine("<span class=\"inherit\">Command: " + cmd + "</span>", "color2", 0);
+        }
+
+        function enterKey(e) {
+            e = e || window.event;
+            if (e.keyCode === 13) {
+                var input = command.innerHTML;
+                commands.push(input);
+                historyIndex = commands.length;
+                addLine("user:~$ " + input, "no-animation", 0);
+                onCommand(input);
+                command.innerHTML = "";
+                textarea.value = "";
+            } else if (e.keyCode === 38 && historyIndex > 0) {
+                historyIndex -= 1;
+                textarea.value = commands[historyIndex] || "";
+                command.innerHTML = textarea.value;
+            } else if (e.keyCode === 40 && historyIndex < commands.length) {
+                historyIndex += 1;
+                textarea.value = commands[historyIndex] !== undefined ? commands[historyIndex] : "";
+                command.innerHTML = textarea.value;
+            }
+        }
+
+        function newTab(link) {
+            setTimeout(function() {
+                window.open(link, "_blank");
+            }, 500);
+        }
+
+
+        function loopLines(name, style, time) {
+        name.forEach(function(item, index) {
+            addLine(item, style, index * time);
+        });
+        }
+
+        function loopLinesPromise(name, style, time) {
+            return new Promise((resolve) => {
+                const promises = name.map((item, index) => addLinePromise(item, style, index * time));
+                Promise.all(promises).then(() => resolve());
+            });
+        }
+
+        function addLinePromise(text, style, time) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+            addLine(text, style, 0);
+            resolve();
+            }, time);
+        });
+        }
+
+        function visibleLength(htmlStr) {
+            if (!htmlStr) return 0;
+            var div = document.createElement("div");
+            div.innerHTML = htmlStr;
+            return (div.textContent || div.innerText || "").length;
+        }
+
+        function printFullWidth(screenWidth, leftSideTxt, rightSideTxt, style, time) {
+            style = style || "";
+            time = time == null ? 0 : time;
+            var leftLen = visibleLength(leftSideTxt);
+            var rightLen = visibleLength(rightSideTxt);
+            var numSpaces = Math.max(0, screenWidth - leftLen - rightLen);
+            var line = leftSideTxt + " ".repeat(numSpaces) + rightSideTxt;
+            addLine(line, style, time);
+        }
+
+        function printImageCentered(image, time) {
+            time = time == null ? 0 : time;
+            var src = typeof image === "string" ? image : (image && image.src);
+            if (!src) return Promise.reject(new Error("printImageCentered: image URL required"));
+            return new Promise(function(resolve, reject) {
+                var container = document.createElement("div");
+                container.className = "terminal-image-container";
+                container.style.textAlign = "center";
+                container.style.padding = "0 1em";
+                container.style.margin = "0 auto";
+                container.style.maxWidth = "80%";
+                var img = document.createElement("img");
+                img.src = src;
+                img.alt = typeof image === "object" && image.alt ? image.alt : "";
+                img.style.maxWidth = "100%";
+                img.style.height = "auto";
+                img.style.display = "block";
+                img.style.marginLeft = "auto";
+                img.style.marginRight = "auto";
+                container.appendChild(img);
+                img.onload = function() {
+                    setTimeout(function() {
+                        before.parentNode.insertBefore(container, before);
+                        window.scrollTo(0, document.body.offsetHeight);
+                        var lineHeightEl = document.querySelector("#terminal p") || terminal || document.body;
+                        var lineHeightPx = parseFloat(getComputedStyle(lineHeightEl).lineHeight);
+                        if (isNaN(lineHeightPx) || lineHeightPx <= 0) lineHeightPx = 1.3 * 16;
+                        var imgHeight = img.getBoundingClientRect().height;
+                        var numLines = Math.max(0, Math.ceil(imgHeight / lineHeightPx));
+                        for (var i = 0; i < numLines; i++) {
+                            addLine("<br>", "", 0);
+                        }
+                        resolve();
+                    }, time);
+                };
+                img.onerror = function() {
+                    reject(new Error("printImageCentered: failed to load image " + src));
+                };
+            });
+        }
+
+        function readfile(file){
+            return new Promise((resolve, reject) => {
+                var fr = new FileReader();  
+                fr.onload = () => {
+                    resolve(fr.result )
+                };
+                fr.readAsArrayBuffer(file);
+            });
+        }
+
+    </script>
+    <script src="/dkey-lib.browser.js"></script>
+    <script>
+      if (window.dkeyLib && window.dkeyLib.dkey) {
+        window.dkeyLib.dkey.configureCircuits('/circuits');
+      }
+    </script>
+    <script src="/index.js"></script>
+  </body>
+</html>
+
+
+
+
