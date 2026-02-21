@@ -3,20 +3,25 @@ const path = require('path');
 
 module.exports = {
   entry: "./index.js",
+  resolve: {
+    alias: {
+      "@wagmi/connectors": path.join(__dirname, "node_modules/@wagmi/connectors/dist/esm/walletConnect.js"),
+    },
+  },
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "index.js",
-    publicPath: "/",
+    publicPath: "./",
   },
   devServer: {
-    contentBase: path.resolve(__dirname, "dist"),
-    publicPath: "/",
+    static: { directory: path.resolve(__dirname, "dist") },
+    devMiddleware: { publicPath: "/" },
   },
   module: {
     rules: [
       {
         test: /\.(?:js|mjs|cjs)$/,
-        exclude: /node_modules/,
+        exclude: /node_modules[\\/](dkey-lib|copy-webpack-plugin|webpack|babel-loader|@babel[\\/])/,
         use: {
           loader: 'babel-loader',
           options: {
@@ -30,12 +35,16 @@ module.exports = {
   },
   mode: "development",
   plugins: [
-    new CopyWebpackPlugin([
-      { from: 'key.png', to: '.' },
-      { from: 'index.html', to: '.' },
-      { from: 'style.css', to: '.' },
-      { from: path.join(__dirname, 'node_modules/dkey-lib/dist/dkey-lib.browser.js'), to: 'dkey-lib.browser.js' },
-      { from: path.join(__dirname, 'node_modules/dkey-lib/circuits'), to: 'circuits' },
-    ]),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'key.png', to: '.' },
+        { from: 'arbitrum-logo.png', to: '.' },
+        { from: 'index.html', to: '.' },
+        { from: 'style.css', to: '.' },
+        { from: path.join(__dirname, 'node_modules/dkey-lib/dist/dkey-lib.browser.js'), to: 'dkey-lib.browser.js' },
+        { from: path.join(__dirname, 'node_modules/dkey-lib/circuits'), to: 'circuits' },
+        { from: path.join(__dirname, 'node_modules/snarkjs/build/snarkjs.min.js'), to: 'snarkjs.min.js' },
+      ],
+    }),
   ],
 };

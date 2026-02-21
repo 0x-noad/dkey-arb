@@ -11,7 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="landing">
+    <div id="storage-prompt" class="storage-prompt hidden">
+      <h1 class="landing-title storage-prompt-title">Use <span id="storage-prompt-username" class="storage-prompt-username"></span> profile from storage?</h1>
+      <div class="storage-prompt-buttons">
+        <button type="button" class="landing-btn" id="storage-prompt-yes">Yes</button>
+        <button type="button" class="landing-btn" id="storage-prompt-no">No</button>
+      </div>
+      <p id="storage-prompt-error" class="landing-error hidden"></p>
+    </div>
+    <div id="landing" class="hidden">
       <h1 class="landing-title">Profile setup</h1>
       <p class="landing-copy">Load or create your dkey profile.</p>
       <div class="landing-options">
@@ -36,7 +44,200 @@
       </div>
       <p id="landing-message" class="landing-error hidden"></p>
     </div>
+    <div id="config-setup" class="hidden config-setup-page">
+      <h1 class="config-setup-title">Chain &amp; RPC setup</h1>
+      <p class="config-setup-copy">Choose your default chain and RPC endpoint.</p>
+      <div id="config-setup-local-prompt" class="config-setup-section hidden">
+        <p class="config-setup-local-msg"></p>
+        <div class="config-setup-buttons">
+          <button type="button" class="landing-btn" id="config-use-local">Use local RPC</button>
+          <button type="button" class="landing-btn" id="config-use-public">Use public RPCs</button>
+        </div>
+      </div>
+      <div class="config-setup-section config-setup-row">
+        <label class="config-setup-label" for="config-default-chain">CHAIN</label>
+        <select id="config-default-chain" class="config-setup-select landing-input">
+          <option value="42161">Arbitrum</option>
+          <option value="8453">Base</option>
+        </select>
+      </div>
+      <div class="config-setup-section config-setup-row">
+        <span class="config-setup-label">ADDRESS</span>
+        <span id="config-setup-address" class="config-setup-address">—</span>
+        <button type="button" class="landing-btn config-setup-connect-btn hidden" id="config-setup-connect-wallet">Connect wallet</button>
+      </div>
+      <div class="config-setup-section config-setup-row">
+        <label class="config-setup-label" for="config-rpc-select">RPC</label>
+        <select id="config-rpc-select" class="config-setup-select landing-input"></select>
+      </div>
+      <div id="config-setup-ipfs" class="config-setup-section config-setup-row">
+        <label class="config-setup-label" for="config-ipfs-gateway">IPFS gateway (for reading)</label>
+        <input type="text" id="config-ipfs-gateway" class="config-setup-input landing-input" placeholder="ipfs.io/ipfs/" />
+      </div>
+      <div class="config-setup-section config-setup-row">
+        <label class="config-setup-label" for="config-pinning-method">Pinning method (for uploading)</label>
+        <select id="config-pinning-method" class="config-setup-select landing-input">
+          <option value="none">None</option>
+          <option value="local">Local node</option>
+          <option value="pinata">Pinata</option>
+          <option value="web3.storage">Web3.Storage</option>
+        </select>
+      </div>
+      <p id="config-setup-error" class="landing-error hidden"></p>
+      <button type="button" class="landing-btn landing-btn-submit config-setup-submit" id="config-setup-continue">Continue</button>
+    </div>
+    <div id="username-setup" class="hidden">
+      <h1 class="config-setup-title">Your name</h1>
+      <p class="config-setup-copy">Enter a display name for this origin.</p>
+      <label class="config-setup-label" for="username-input">Name</label>
+      <input type="text" id="username-input" class="landing-input" placeholder="Your name" autocomplete="name" />
+      <p id="username-setup-error" class="landing-error hidden"></p>
+      <button type="button" class="landing-btn landing-btn-submit" id="username-setup-continue">Continue</button>
+    </div>
+    <div id="connect-wallet-required-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="connect-wallet-required-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Wallet required</p>
+        <p class="overlay-copy">Click the button in the header &amp; connect your wallet to proceed.</p>
+        <div class="overlay-buttons">
+          <button type="button" class="landing-btn" id="connect-wallet-required-ok">OK</button>
+        </div>
+      </div>
+    </div>
+    <div id="reclaim-bid-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="reclaim-bid-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Reclaim bid?</p>
+        <p class="overlay-copy">Your ETH will be returned to your wallet.</p>
+        <p id="reclaim-bid-error" class="landing-error hidden"></p>
+        <div class="overlay-buttons">
+          <button type="button" class="landing-btn" id="reclaim-bid-confirm">Reclaim</button>
+          <button type="button" class="landing-btn" id="reclaim-bid-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="increase-bid-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="increase-bid-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Increase bid</p>
+        <p class="overlay-copy">How much more ETH to add?</p>
+        <input type="text" id="increase-bid-amount" class="landing-input" placeholder="e.g. 0.01" />
+        <p id="increase-bid-error" class="landing-error hidden"></p>
+        <div class="overlay-buttons">
+          <button type="button" class="landing-btn" id="increase-bid-confirm">Increase</button>
+          <button type="button" class="landing-btn" id="increase-bid-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="profile-chain-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="profile-chain-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Connect to chain</p>
+        <p class="overlay-copy">Choose a chain to connect your wallet.</p>
+        <div class="overlay-chain-buttons">
+          <button type="button" class="landing-btn profile-chain-option" data-chain-id="42161">Arbitrum</button>
+          <button type="button" class="landing-btn profile-chain-option" data-chain-id="8453">Base</button>
+        </div>
+      </div>
+    </div>
+    <div id="share-listing-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="share-listing-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Share listing</p>
+        <p class="overlay-copy">Copy this link to share the listing.</p>
+        <input type="text" id="share-listing-url" class="landing-input" readonly />
+        <div class="overlay-buttons">
+          <button type="button" class="landing-btn" id="share-listing-copy">Copy link</button>
+          <button type="button" class="landing-btn" id="share-listing-dismiss">Done</button>
+        </div>
+      </div>
+    </div>
+    <div id="tx-success-overlay" class="overlay hidden">
+      <div class="overlay-backdrop" data-dismiss="tx-success-overlay"></div>
+      <div class="overlay-content">
+        <p class="overlay-title">Tx successful!</p>
+        <p id="tx-success-message" class="overlay-copy">You just received +0 ETH.</p>
+        <div class="overlay-buttons">
+          <button type="button" class="landing-btn" id="tx-success-ok">OK</button>
+        </div>
+      </div>
+    </div>
     <div id="terminal-wrap" class="hidden">
+    <div id="app-wireframe" class="app-wireframe">
+      <header class="app-header">
+        <div class="header-ascii-wrap">
+          <pre id="header-ascii" class="profile-ascii header-ascii">0
+            /|\
+            ‖</pre>
+        </div>
+        <div class="header-user-wrap">
+          <p id="header-username" class="header-username">—</p>
+          <div id="header-connect-wrap"></div>
+          <p id="header-connect-error" class="landing-error hidden"></p>
+        </div>
+        <div class="header-actions-wrap">
+          <button type="button" id="header-action-btn" class="header-action-btn hidden" title="Back to profile">↵</button>
+          <button type="button" id="header-gear-btn" class="header-action-btn hidden" title="Setup">⚙</button>
+        </div>
+      </header>
+      <div class="app-content">
+    <div id="profile-page" class="profile-page"></div>
+    <div id="listing-view" class="hidden listing-view">
+      <div id="listing-view-loading" class="listing-loading">Loading listing…</div>
+      <div id="listing-view-content" class="listing-content hidden"></div>
+      <p id="listing-view-error" class="landing-error hidden"></p>
+      <div id="listing-view-busy" class="listing-busy hidden"></div>
+    </div>
+    <div id="create-listing-view" class="hidden create-listing-view">
+      <div id="create-listing-form" class="create-listing-form">
+        <p class="profile-section-label">CHAIN:</p>
+        <select id="create-listing-chain" class="landing-input create-listing-chain-select"></select>
+        <p class="profile-section-label">UPLOAD FILE TO SELL</p>
+        <label id="create-listing-file-label" class="landing-btn landing-file-label" for="create-listing-file">Choose file</label>
+        <input type="file" id="create-listing-file" class="landing-file-input" />
+        <p class="profile-section-label">UPLOAD COVER IMAGE</p>
+        <label id="create-listing-cover-label" class="landing-btn landing-file-label" for="create-listing-cover">Choose cover image</label>
+        <input type="file" id="create-listing-cover" class="landing-file-input" accept="image/*" />
+        <p class="profile-section-label"># DKEYs FOR SALE:</p>
+        <input type="number" id="create-listing-dkeys" class="landing-input" min="1" placeholder="1" />
+        <p class="profile-section-label">SUGGESTED PRICE (ETH):</p>
+        <input type="number" id="create-listing-price" class="landing-input" min="0.000001" step="0.000001" placeholder="0.01" />
+        <p class="profile-section-label">ROYALTY ON RE-SALE (%):</p>
+        <input type="number" id="create-listing-royalty" class="landing-input" min="1" max="99" placeholder="10" />
+        <p class="profile-section-label">FILE DESCRIPTION:</p>
+        <textarea id="create-listing-description" class="landing-input" rows="4" placeholder="Describe your file..."></textarea>
+        <p id="create-listing-status" class="create-listing-status"></p>
+        <p id="create-listing-error" class="landing-error hidden"></p>
+        <button type="button" id="create-listing-btn" class="landing-btn landing-btn-submit" disabled>CREATE LISTING</button>
+      </div>
+      <div id="create-listing-paste-cover-cid" class="hidden create-listing-paste-cid">
+        <p class="profile-section-label">Upload your cover image to IPFS (e.g. pinata.cloud), then paste the cover photo CID below.</p>
+        <input type="text" id="create-listing-pasted-cover-cid" class="landing-input" placeholder="Qm... or bafy..." />
+        <button type="button" id="create-listing-continue-cover-cid-btn" class="landing-btn landing-btn-submit">Continue</button>
+        <p id="create-listing-paste-cover-error" class="landing-error hidden"></p>
+      </div>
+      <div id="create-listing-paste-cid" class="hidden create-listing-paste-cid">
+        <p class="profile-section-label">Pin the downloaded files to IPFS, then paste the directory CID below.</p>
+        <input type="text" id="create-listing-pasted-cid" class="landing-input" placeholder="Qm..." />
+        <button type="button" id="create-listing-continue-cid-btn" class="landing-btn landing-btn-submit">Continue with this CID</button>
+        <p id="create-listing-paste-error" class="landing-error hidden"></p>
+      </div>
+      <div id="create-listing-success" class="hidden create-listing-success">
+        <p class="profile-section-label">Listing created.</p>
+        <p class="create-listing-share-label">Share link:</p>
+        <input type="text" id="create-listing-share-url" class="landing-input" readonly />
+        <button type="button" id="create-listing-copy-btn" class="landing-btn">Copy link</button>
+      </div>
+      <div id="create-listing-busy" class="listing-busy hidden"></div>
+    </div>
+    <div id="view-file-view" class="hidden view-file-view">
+      <div id="view-file-loading" class="listing-loading hidden">Downloading &amp; decrypting file…</div>
+      <p id="view-file-error" class="landing-error hidden"></p>
+      <h2 id="view-file-name" class="view-file-name"></h2>
+      <div id="view-file-display" class="view-file-display"></div>
+      <p id="view-file-download-wrap" class="view-file-download-wrap hidden"><a href="#" id="view-file-download" class="profile-link">DOWNLOAD</a></p>
+      <div id="view-file-busy" class="listing-busy hidden"></div>
+    </div>
     <div id="terminal">
       <a id="before"></a>
     </div>
@@ -52,6 +253,8 @@
       ></textarea>
       <div id="liner">
         <span id="typer"></span><b class="cursor" id="cursor">█</b>
+      </div>
+    </div>
       </div>
     </div>
     </div>
@@ -138,7 +341,6 @@
         command.innerHTML = textarea.value;
 
         window.terminalReady = function() {
-            addLine("Welcome to dkey.", "color2", 80);
             if (textarea && typeof textarea.focus === "function") textarea.focus();
         };
 
@@ -272,13 +474,13 @@
         }
 
     </script>
-    <script src="/dkey-lib.browser.js"></script>
+    <script src="dkey-lib.browser.js"></script>
     <script>
       if (window.dkeyLib && window.dkeyLib.dkey) {
-        window.dkeyLib.dkey.configureCircuits('/circuits');
+        window.dkeyLib.dkey.configureCircuits('circuits');
       }
     </script>
-    <script src="/index.js"></script>
+    <script src="index.js"></script>
   </body>
 </html>
 

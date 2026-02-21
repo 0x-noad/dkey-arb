@@ -11178,7 +11178,7 @@ var dkeyLib = (function (exports) {
             },
             42161: {
                 abi: DKeyStoreL2Contract.abi,
-                address: '0x0048d6232aA1aaD15b6ea926d2A4E1a66E27325e',
+                address: '0x470089fb4e1Bf76782DBA011cE686c9F58Fc3d42',
                 deploymentBlockNumber: 431186166,
                 chainName: 'Arbitrum',
             },
@@ -31077,6 +31077,7 @@ var dkeyLib = (function (exports) {
                     abi: contracts.DKeyStoreL2[this.chainId]?.abi,
                     functionName: "checkIfDkeysCanBeSold",
                     args: [ipfsCIDBytesString],
+                    chainId: this.chainId,
                 });
                 this.canSell = result;
                 return { success: true, result: RESULTS.BLOCKCHAIN_INTERACTION_SUCCESSFUL };
@@ -31556,6 +31557,7 @@ var dkeyLib = (function (exports) {
                     abi: contracts.DKeyStoreL2[chainId]?.abi,
                     functionName: "batchCheckIfDkeysCanBeSold",
                     args: [ipfsCIDBytesArray],
+                    chainId: chainId,
                 });
                 ipfsCidsToCheck.forEach((cid, index) => {
                     this.myDKeys[chainId][cid].canSell = results[index];
@@ -31600,6 +31602,7 @@ var dkeyLib = (function (exports) {
                     abi: contracts.DKeyStoreL2[chainId]?.abi,
                     functionName: "batchGetBidStatuses",
                     args: [ipfsCIDBytesArray, bobPubKeyXs, bobPubKeyYs],
+                    chainId: chainId,
                 });
                 const filledBidCids = ipfsCids.filter((_, index) => bidAmounts[index] === BigInt("0xffffffffffffffffffffffff"));
                 filledBidCids.forEach((cid, index) => {
@@ -31655,7 +31658,7 @@ var dkeyLib = (function (exports) {
          * @returns The updated user profile with the new DKey added and bid removed.
          */
         async fetchDkey(bid) {
-            const client = getPublicClient(this.config);
+            const client = getPublicClient(this.config, { chainId: bid.chainId });
             if (!contracts.DKeyStoreL2[bid.chainId]) {
                 return { success: false, result: RESULTS.UNSUPPORTED_CHAIN_ID };
             }
@@ -31843,25 +31846,31 @@ var dkeyLib = (function (exports) {
         /**
          * Fetches listing info from the smart contract and appends open bids.
          * @param ipfsCID - The IPFS content identifier of the listing.
-         * @param howManyBidsToFetch - Number of open bids to retrieve from the subgraph.
          * @param ListingMetadata - The metadata object associated with the listing (taken from IPFS).
          * @param config - The wagmi config for blockchain interaction.
+         * @param chainId - Optional chain ID to query. When the listing supports multiple chains, use this to pick one. Defaults to ListingMetadata.chainIds[0].
          * @returns A detailed object describing the listing and its current bids.
          */
         fetchListingDetails: async (ipfsCID, ListingMetadata, config) => {
+            const chain = ListingMetadata.chainIds[0];
+            if (!contracts.DKeyStoreL2[chain]) {
+                throw new Error(`Unsupported chainId: ${chain}`);
+            }
             const result = await readContract(config, {
-                address: contracts.DKeyStoreL2[ListingMetadata.chainIds[0]].address,
-                abi: contracts.DKeyStoreL2[ListingMetadata.chainIds[0]]?.abi,
+                address: contracts.DKeyStoreL2[chain].address,
+                abi: contracts.DKeyStoreL2[chain]?.abi,
                 functionName: "getListingDetails",
                 args: [dkey.formatCID(ipfsCID).ipfsCIDBytesString],
+                chainId: chain,
             });
             ///////////////////////////////////////////////////////////////
             // L2 only
             const totalBidsPlaced = await readContract(config, {
-                address: contracts.DKeyStoreL2[ListingMetadata.chainIds[0]].address,
-                abi: contracts.DKeyStoreL2[ListingMetadata.chainIds[0]]?.abi,
+                address: contracts.DKeyStoreL2[chain].address,
+                abi: contracts.DKeyStoreL2[chain]?.abi,
                 functionName: "getTotalBidsPlaced",
                 args: [dkey.formatCID(ipfsCID).ipfsCIDBytesString],
+                chainId: chain,
             });
             ///////////////////////////////////////////////////////////////
             const resultObj = result;
@@ -31881,6 +31890,7 @@ var dkeyLib = (function (exports) {
                 coverPhotoLink: ListingMetadata.coverPhotoLink,
                 coverPhotoCID: ListingMetadata.coverPhotoCID,
                 chainIds: ListingMetadata.chainIds,
+                chainId: chain, // ListingMetadata.chainIds[0])
                 bids: [],
                 earliestBlockQueriedForBids: 0,
                 listingCreatedAfterBlock: ListingMetadata.listingCreatedAfterBlock,
@@ -32067,11 +32077,14 @@ var dkeyLib = (function (exports) {
                 abi,
                 functionName: "getBidDetails",
                 args: [ipfsCIDBytesString, bid.pubKeyX, bid.pubKeyY],
+                chainId: chainId,
             }); // Tuple: [address, amount]
             return result; // Return the full tuple
         },
-        getCurrentBlock: async (config) => {
-            const client = getPublicClient(config);
+        getCurrentBlock: async (config, chainId) => {
+            const client = getPublicClient(config, ...(chainId != null ? [{ chainId }] : []));
+            if (!client)
+                throw new Error("No public client available");
             return await client.getBlockNumber();
         },
         fetchOpenBids: async (chainId, ipfsCID, startingIndex, numberOfKeysToFetch, config) => {
@@ -32085,6 +32098,7 @@ var dkeyLib = (function (exports) {
                 abi,
                 functionName: "getOpenBids",
                 args: [ipfsCIDBytesString, startingIndex, numberOfKeysToFetch],
+                chainId: chainId,
             }); // Array of [pubKeyX, pubKeyY, bidAmount] tuples
             return result;
         },
@@ -32157,8 +32171,8 @@ var dkeyLib = (function (exports) {
          * @returns An object containing multiple representations of the CID.
          */
         formatCID: (cid) => {
-            const parsedCid = CID.parse(cid, base32);
-            const bytes32CID = parsedCid.bytes.slice(4);
+            const parsedCid = CID.parse(cid);
+            const bytes32CID = parsedCid.multihash.digest;
             const ipfsCIDBytes = getBytes(bytes32CID);
             const ipfsCIDBytesString = hexlify(ipfsCIDBytes);
             const hashedCid0xString = keccak256$1(ipfsCIDBytes); // FYI: this format is how subgraph references ipfsCIDs
