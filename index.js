@@ -1478,7 +1478,10 @@
       .catch(function (e) {
         if (!listingState || listingState.cid !== cid) return;
         hide(getEl("listing-view-loading"));
-        showError("listing-view-error", e && e.message ? e.message : "Failed to load listing.");
+        var msg = (e && e.message && (e.message.indexOf("404") !== -1 || e.message.indexOf("Not Found") !== -1))
+          ? "Listing not found."
+          : (e && e.message ? e.message : "Failed to load listing.");
+        showError("listing-view-error", msg);
       });
   }
 
@@ -1515,7 +1518,7 @@
     html.push('<ul class="listing-bids-list" id="listing-bids-list"></ul>');
     html.push('<button type="button" class="landing-btn listing-bids-full-btn hidden" id="listing-view-open-bids-btn">VIEW OPEN BIDs</button>');
     html.push('<button type="button" class="landing-btn listing-bids-full-btn hidden" id="listing-show-more-bids-btn">SHOW MORE BIDs</button>');
-    html.push('<br/><p id="listing-no-open-bids" class="listing-no-open-bids hidden">No open bids at this time.</p>');
+    html.push('<br/><p id="listing-no-open-bids" class="listing-no-open-bids hidden">No open bids at this time. <a href="#" class="listing-share-link" id="listing-view-share-link">Share</a> a link to this listing.</p>');
     
     content.innerHTML = html.join("");
     var viewOpenBtn = getEl("listing-view-open-bids-btn");
@@ -1596,6 +1599,16 @@
     var showMoreBtn = getEl("listing-show-more-bids-btn");
     if (viewOpenBtn) viewOpenBtn.onclick = triggerFetchBids;
     if (showMoreBtn) showMoreBtn.onclick = triggerFetchBids;
+    var shareLink = getEl("listing-view-share-link");
+    if (shareLink) {
+      shareLink.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (listingState && listingState.cid) {
+          var chainId = listingState.chainId ? parseInt(listingState.chainId, 10) : null;
+          showShareListingOverlay(listingState.cid, chainId);
+        }
+      });
+    }
     var placeBidBtn = getEl("listing-place-bid-btn");
     if (placeBidBtn) placeBidBtn.onclick = handlePlaceBid;
     var list = getEl("listing-bids-list");
@@ -1837,7 +1850,7 @@
     var myOpenBids = profile.myOpenBids || {};
 
     var html = [];
-    html.push('<p class="profile-section-label">LISTINGs<a href="#" class="profile-link" data-type="create-listing">[+]</a></p><ul class="profile-list">');
+    html.push('<p class="profile-section-label">LISTINGs<a href="#" class="profile-link" data-type="create-listing">[➕]</a></p><ul class="profile-list">');
     var listingCount = 0;
     Object.keys(myListings).forEach(function (chainId) {
       var chainListings = myListings[chainId];
@@ -1859,7 +1872,7 @@
     if (listingCount === 0) html.push("<li>—</li>");
     html.push("</ul>");
 
-    html.push('<p class="profile-section-label">DKEYs</p><ul class="profile-list">');
+    html.push('<p class="profile-section-label">DKEYs<a href="#" class="profile-link" data-action="view-by-cid">[🔎]</a></p><ul class="profile-list">');
     var dkeyCount = 0;
     Object.keys(myDKeys).forEach(function (chainId) {
       var chainDKeys = myDKeys[chainId];
@@ -1875,7 +1888,7 @@
     if (dkeyCount === 0) html.push("<li>—</li>");
     html.push("</ul>");
 
-    html.push('<p class="profile-section-label">OPEN BIDs</p><ul class="profile-list profile-bids-list">');
+    html.push('<p class="profile-section-label">OPEN BIDs<a href="#" class="profile-link" data-action="view-by-cid">[🔎]</a></p><ul class="profile-list profile-bids-list">');
     var bidCount = 0;
     Object.keys(myOpenBids).forEach(function (chainId) {
       var chainBids = myOpenBids[chainId];
@@ -1886,7 +1899,7 @@
           var amountStr = B.bidAmountInEth != null ? (formatBidAmountEth(B.bidAmountInEth) + " ETH") : "—";
           bidCount++;
           html.push('<li class="profile-bid-item">');
-          html.push('<a href="#" class="profile-link profile-bid-main" data-type="listing" data-cid="' + escapeAttr(cid) + '" data-chain-id="' + escapeAttr(chainId) + '">' + escapeHtml(fileName) + " | " + escapeHtml(amountStr) + "</a>");
+          html.push('<a href="#" class="profile-link profile-bid-main" data-type="listing" data-cid="' + escapeAttr(cid) + '" data-chain-id="' + escapeAttr(chainId) + '">' + escapeHtml(fileName) + " → " + escapeHtml(amountStr) + "</a>");
           html.push("<br/>");
           html.push('<span class="profile-bid-actions">');
           html.push('<a href="#" class="profile-link profile-bid-action" data-action="increase" data-cid="' + escapeAttr(cid) + '" data-chain-id="' + escapeAttr(chainId) + '">[+]</a>');
@@ -1931,6 +1944,10 @@
         }
         if (action === "share" && cid && chainId) {
           showShareListingOverlay(cid, chainId);
+          return;
+        }
+        if (action === "view-by-cid") {
+          showViewListingByCidOverlay();
           return;
         }
         var type = a.getAttribute("data-type");
@@ -2015,6 +2032,20 @@
 
   function hideShareListingOverlay() {
     hide(getEl("share-listing-overlay"));
+  }
+
+  function showViewListingByCidOverlay() {
+    var overlay = getEl("view-listing-by-cid-overlay");
+    var input = getEl("view-listing-by-cid-input");
+    if (overlay) show(overlay);
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+  }
+
+  function hideViewListingByCidOverlay() {
+    hide(getEl("view-listing-by-cid-overlay"));
   }
 
   function formatEthForDisplay(val) {
@@ -2123,6 +2154,31 @@
     }
   }
 
+  function wireViewListingByCidOverlay() {
+    var okBtn = getEl("view-listing-by-cid-ok");
+    var overlay = getEl("view-listing-by-cid-overlay");
+    var input = getEl("view-listing-by-cid-input");
+    if (okBtn && input) {
+      okBtn.addEventListener("click", function () {
+        var cid = input.value.trim();
+        if (!cid) return;
+        var profile = window.__dkeyProfile;
+        var chainId = profile ? getDefaultChainId(profile) : null;
+        if (window.history && window.history.replaceState) {
+          var url = (window.location.pathname || "/") + "?listing=" + encodeURIComponent(cid) + (chainId ? "&chainId=" + encodeURIComponent(chainId) : "");
+          if (window.location.hash) url += window.location.hash;
+          window.history.replaceState(null, "", url);
+        }
+        hideViewListingByCidOverlay();
+        showListingView(cid, chainId);
+      });
+    }
+    if (overlay) {
+      var backdrop = overlay.querySelector(".overlay-backdrop[data-dismiss=\"view-listing-by-cid-overlay\"]");
+      if (backdrop) backdrop.addEventListener("click", hideViewListingByCidOverlay);
+    }
+  }
+
   function wireBidOverlays() {
     var reclaimConfirm = getEl("reclaim-bid-confirm");
     var reclaimCancel = getEl("reclaim-bid-cancel");
@@ -2199,6 +2255,7 @@
         else if (id === "increase-bid-overlay") hideIncreaseBidOverlay();
         else if (id === "tx-success-overlay") hideTxSuccessOverlay();
         else if (id === "connect-wallet-required-overlay") hideConnectWalletRequiredOverlay();
+        else if (id === "view-listing-by-cid-overlay") hideViewListingByCidOverlay();
       });
     });
   }
@@ -2449,6 +2506,7 @@
     wireShareListingOverlay();
     wireTxSuccessOverlay();
     wireConnectWalletRequiredOverlay();
+    wireViewListingByCidOverlay();
     wireViewFileDownload();
   }
 

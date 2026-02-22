@@ -398,9 +398,11 @@ p {
   border: 2px solid #2d5a27;
   display: flex;
   flex-direction: column;
-  min-width: 400px;
+  min-width: 380px;
+  max-width: 600px;
+  width: 98vw;
   min-height: max(600px, 90vh);
-  max-height: 100vh;
+  max-height: 95vh;
   box-sizing: border-box;
 }
 .app-header {
@@ -536,6 +538,11 @@ p {
   font-size: 1em;
   margin: 1em 0 0.3em;
 }
+#profile-page .profile-section-label:has(.profile-link) {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
 .profile-list {
   margin: 0 0 0.5em;
   padding-left: 1.5em;
@@ -641,7 +648,7 @@ p {
 .listing-description-value {
   color: #B89076;
   white-space: pre-wrap;
-  max-width: 360px;
+  max-width: 350px;
   display: inline-block;
 }
 .listing-row {
@@ -668,9 +675,14 @@ p {
 .listing-no-open-bids {
   text-align: center;
   font-size: 0.85em;
-  color: #888;
-  margin: 1em 0 0;
-  padding: 0;
+  color: #96989a;
+}
+.listing-no-open-bids .listing-share-link {
+  color: #96989a;
+  text-decoration: underline;
+}
+.listing-no-open-bids .listing-share-link:hover {
+  color: inherit;
 }
 .listing-bid-item-inline {
   display: flex;
