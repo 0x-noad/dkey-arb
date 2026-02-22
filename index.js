@@ -1354,7 +1354,8 @@
           hide(getEl("create-listing-form"));
           hide(getEl("create-listing-paste-cid"));
           show(getEl("create-listing-success"));
-          var shareUrl = getOrigin() + "/?listing=" + encodeURIComponent(ipfsCID);
+          var base = typeof window !== "undefined" && window.location ? (window.location.origin + (window.location.pathname || "/")) : getOrigin() + "/";
+          var shareUrl = base + "?listing=" + encodeURIComponent(ipfsCID);
           var shareInput = getEl("create-listing-share-url");
           if (shareInput) shareInput.value = shareUrl;
           console.log("[CreateListing] Listing created. Share URL:", shareUrl);
@@ -1625,9 +1626,15 @@
   }
 
   function ensureSnarkJSLoaded() {
-    var dkey = window.dkeyLib && window.dkeyLib.dkey;
-    if (dkey && typeof dkey.loadSnarkJS === "function") return dkey.loadSnarkJS();
-    return Promise.resolve();
+    if (typeof window !== "undefined" && window.snarkjs) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = "snarkjs.min.js";
+      script.async = true;
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error("Failed to load snarkjs.min.js")); };
+      document.body.appendChild(script);
+    });
   }
 
   function triggerFetchBids() {
